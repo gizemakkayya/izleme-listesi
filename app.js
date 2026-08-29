@@ -14,7 +14,7 @@ const STORAGE_KEY_ACTIVE_TAB = 'izleme_listesi_tab_v10';
 const MADDELER = [
   { id: 'filmler', name: '🎬 Filmler' },
   { id: 'diziler', name: '📺 Diziler' },
-  { id: 'sirasi', name: '🎯 İzleme Sırası' },
+  { id: 'sirasi', name: '🎯 İzleme Listesi' },
   { id: 'izlendi', name: '✅ İzlendi' }
 ];
 
@@ -367,8 +367,8 @@ function renderActiveMaddeItems() {
   if (filtered.length === 0) {
     emptyBox.style.display = 'flex';
     if (appState.activeMaddeId === 'sirasi') {
-      emptyTitle.textContent = 'İzleme sıranızda henüz içerik yok';
-      emptyDesc.textContent = 'Filmler veya Diziler sekmesinden içeriklerin üzerindeki "🎯 Sıraya Ekle" butonuna basarak izleme sıranızı oluşturabilirsiniz.';
+      emptyTitle.textContent = 'İzleme listenizde henüz içerik yok';
+      emptyDesc.textContent = 'Filmler veya Diziler sekmesinden içeriklerin üzerindeki "🎯 Listeye Ekle" butonuna basarak izleme listenizi oluşturabilirsiniz.';
     } else if (appState.activeMaddeId === 'izlendi') {
       emptyTitle.textContent = 'Henüz izlendi olarak işaretlenen içerik yok';
       emptyDesc.textContent = 'İçeriklerin üzerindeki "✓ İzledim" butonuna basarak buraya ekleyebilirsiniz.';
@@ -425,11 +425,11 @@ function renderActiveMaddeItems() {
               <button class="btn-reorder btn-reorder-down" title="Aşağı Taşı" ${index === filtered.length - 1 ? 'disabled' : ''}>
                 🔽 Aşağı
               </button>
-              <button class="btn-queue-remove" title="Sıradan Çıkar">✕ Çıkar</button>
+              <button class="btn-queue-remove" title="Listeden Çıkar">✕ Çıkar</button>
             </div>
           ` : (!isWatched ? `
-            <button class="btn-card-queue-toggle ${inQueue ? 'in-queue' : ''}" title="${inQueue ? 'İzleme Sırasında (# ' + item.queueOrder + ')' : 'İzleme Sırasına Ekle'}">
-              ${inQueue ? `🎯 Sırada (#${item.queueOrder})` : '🎯 Sıraya Ekle'}
+            <button class="btn-card-queue-toggle ${inQueue ? 'in-queue' : ''}" title="${inQueue ? 'İzleme Listesinde (# ' + item.queueOrder + ')' : 'İzleme Listesine Ekle'}">
+              ${inQueue ? `🎯 Listede (#${item.queueOrder})` : '🎯 Listeye Ekle'}
             </button>
           ` : '')}
 
