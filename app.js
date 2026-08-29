@@ -1,0 +1,629 @@
+// ==========================================
+// TMDB & UYGULAMA YAPILANDIRMASI
+// ==========================================
+const DEFAULT_TMDB_API_KEY = '8265bd1679663a7ea12ac168da84d2e8';
+const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+const BACKDROP_BASE_URL = 'https://image.tmdb.org/t/p/w1280';
+
+// Yerel Depolama Anahtarları (Kalıcı Saklama)
+const STORAGE_KEY_ITEMS = 'izleme_listesi_items_v8';
+const STORAGE_KEY_ACTIVE_TAB = 'izleme_listesi_active_tab_v8';
+
+// Sabit Kategoriler (Maddeler)
+const MADDELER = [
+  { id: 'filmler', name: '🎬 Filmler' },
+  { id: 'diziler', name: '📺 Diziler' },
+  { id: 'izlendi', name: '✅ İzlendi' }
+];
+
+// Başlangıç Örnek İçerikleri
+const DEFAULT_ITEMS = [
+  {
+    id: 693134,
+    type: 'movie',
+    title: 'Dune: Çöl Gezegeni Bölüm İki',
+    original_title: 'Dune: Part Two',
+    isWatched: false,
+    userRating: 9,
+    tmdbRating: 8.3,
+    release_date: '2024-02-27',
+    poster_path: '/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg',
+    backdrop_path: '/xOMo8BRK7PfcJv9JCnx7s520bEx.jpg',
+    overview: 'Paul Atreides, ailesini yok eden komploculardan intikam almak için Chani ve Fremenlerle birleşirken bir yolculuğa çıkar.',
+    notes: 'Görsel efektler ve müzikler muazzam!',
+    addedAt: Date.now()
+  },
+  {
+    id: 1396,
+    type: 'tv',
+    title: 'Breaking Bad',
+    original_title: 'Breaking Bad',
+    isWatched: true, // Başlangıçta izlendi
+    userRating: 10,
+    tmdbRating: 8.9,
+    release_date: '2008-01-20',
+    poster_path: '/ztkUQFLlC19CCMYHW9o1zWhJRNq.jpg',
+    backdrop_path: '/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg',
+    overview: 'Walter White, ölümcül bir kanser teşhisi konduktan sonra ailesinin mali geleceğini güvenceye almak için uyuşturucu dünyasına girer.',
+    notes: 'Tüm zamanların en iyi dizilerinden.',
+    addedAt: Date.now() - 1000
+  },
+  {
+    id: 157336,
+    type: 'movie',
+    title: 'Yıldızlararası',
+    original_title: 'Interstellar',
+    isWatched: false,
+    userRating: null,
+    tmdbRating: 8.4,
+    release_date: '2014-11-05',
+    poster_path: '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
+    backdrop_path: '/xJHokMbljvjADYdit5fK5VQsXEG.jpg',
+    overview: 'İnsanlığın geleceğinin yıldızlar arasında olup olmadığını öğrenmek için galaksimizin ötesine seyahat eden bir grup kaşifin hikayesi.',
+    notes: '',
+    addedAt: Date.now() - 2000
+  }
+];
+
+// ==========================================
+// UYGULAMA DURUMU (APP STATE)
+// ==========================================
+let appState = {
+  maddeler: MADDELER,
+  items: loadItems(),
+  activeMaddeId: loadActiveTab(),
+  activeMedia: null,
+  cache: {}
+};
+
+// ==========================================
+// DOM ELEMANLARI
+// ==========================================
+const maddelerList = document.getElementById('maddeler-list');
+const mediaGrid = document.getElementById('media-grid');
+const emptyBox = document.getElementById('empty-box');
+const emptyTitle = document.getElementById('empty-title');
+const emptyDesc = document.getElementById('empty-desc');
+const emptyAddBtn = document.getElementById('empty-add-btn');
+
+// TMDB Ekle Modalı
+const openAddMediaBtn = document.getElementById('open-add-media-btn');
+const addMediaModal = document.getElementById('add-media-modal');
+const addMediaModalClose = document.getElementById('add-media-modal-close');
+const targetMaddeSelect = document.getElementById('target-madde-select');
+const tmdbSearchInput = document.getElementById('tmdb-search-input');
+const modalClearSearchBtn = document.getElementById('modal-clear-search-btn');
+const tmdbSearchResults = document.getElementById('tmdb-search-results');
+
+// Detay / Not Modalı
+const detailModal = document.getElementById('detail-modal');
+const detailModalClose = document.getElementById('detail-modal-close');
+const modalHeroBg = document.getElementById('modal-hero-bg');
+const modalPoster = document.getElementById('modal-poster');
+const modalTypeBadge = document.getElementById('modal-type-badge');
+const modalTmdbRating = document.getElementById('modal-tmdb-rating');
+const modalYear = document.getElementById('modal-year');
+const modalTitle = document.getElementById('modal-title');
+const modalOverview = document.getElementById('modal-overview');
+const modalMoveMaddeSelect = document.getElementById('modal-move-madde-select');
+const modalUserRating = document.getElementById('modal-user-rating');
+const modalUserNote = document.getElementById('modal-user-note');
+const modalDeleteItemBtn = document.getElementById('modal-delete-item-btn');
+const modalSaveItemBtn = document.getElementById('modal-save-item-btn');
+
+const toastContainer = document.getElementById('toast-container');
+
+// ==========================================
+// YEREL DEPOLAMA İŞLEMLERİ (LOCALSTORAGE)
+// ==========================================
+function loadItems() {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY_ITEMS);
+    if (data) {
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.error('LocalStorage okuma hatası:', e);
+  }
+  return DEFAULT_ITEMS;
+}
+
+function saveItems() {
+  try {
+    localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(appState.items));
+  } catch (e) {
+    console.error('LocalStorage yazma hatası:', e);
+  }
+}
+
+function loadActiveTab() {
+  try {
+    const tab = localStorage.getItem(STORAGE_KEY_ACTIVE_TAB);
+    if (tab && MADDELER.some(m => m.id === tab)) return tab;
+  } catch (e) {}
+  return 'filmler';
+}
+
+function saveActiveTab(tabId) {
+  try {
+    localStorage.setItem(STORAGE_KEY_ACTIVE_TAB, tabId);
+  } catch (e) {}
+}
+
+function showToast(message, icon = '✨') {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `<span>${icon}</span> <span>${escapeHtml(message)}</span>`;
+  toastContainer.appendChild(toast);
+
+  setTimeout(() => toast.remove(), 3000);
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ==========================================
+// TMDB API
+// ==========================================
+async function fetchFromTMDB(endpoint, params = {}) {
+  const url = new URL(`${TMDB_BASE_URL}${endpoint}`);
+  url.searchParams.set('api_key', DEFAULT_TMDB_API_KEY);
+  url.searchParams.set('language', 'tr-TR');
+
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+
+  const cacheKey = url.toString();
+  if (appState.cache[cacheKey]) return appState.cache[cacheKey];
+
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error('TMDB API Hatası');
+  const data = await res.json();
+  appState.cache[cacheKey] = data;
+  return data;
+}
+
+// ==========================================
+// MADDELERİ ÇİZ & YÖNET
+// ==========================================
+function renderMaddelerBar() {
+  maddelerList.innerHTML = '';
+
+  appState.maddeler.forEach(madde => {
+    let count = 0;
+    if (madde.id === 'filmler') {
+      count = appState.items.filter(i => i.type === 'movie').length;
+    } else if (madde.id === 'diziler') {
+      count = appState.items.filter(i => i.type === 'tv').length;
+    } else if (madde.id === 'izlendi') {
+      count = appState.items.filter(i => i.isWatched === true).length;
+    }
+
+    const pill = document.createElement('button');
+    pill.className = `madde-pill ${madde.id === appState.activeMaddeId ? 'active' : ''}`;
+    pill.innerHTML = `
+      <span>${escapeHtml(madde.name)}</span>
+      <span class="madde-count">${count}</span>
+    `;
+
+    pill.addEventListener('click', () => {
+      appState.activeMaddeId = madde.id;
+      saveActiveTab(madde.id);
+      renderMaddelerBar();
+      renderActiveMaddeItems();
+    });
+
+    maddelerList.appendChild(pill);
+  });
+
+  updateMaddeSelectOptions();
+}
+
+function updateMaddeSelectOptions() {
+  targetMaddeSelect.innerHTML = '';
+  modalMoveMaddeSelect.innerHTML = '';
+
+  const opts = [
+    { id: 'filmler', name: '🎬 Filmler' },
+    { id: 'diziler', name: '📺 Diziler' }
+  ];
+
+  opts.forEach(m => {
+    const opt1 = document.createElement('option');
+    opt1.value = m.id;
+    opt1.textContent = m.name;
+    targetMaddeSelect.appendChild(opt1);
+
+    const opt2 = document.createElement('option');
+    opt2.value = m.id;
+    opt2.textContent = m.name;
+    modalMoveMaddeSelect.appendChild(opt2);
+  });
+
+  if (appState.activeMaddeId === 'diziler') {
+    targetMaddeSelect.value = 'diziler';
+  } else {
+    targetMaddeSelect.value = 'filmler';
+  }
+}
+
+// ==========================================
+// SEÇİLEN MADDENİN İÇERİKLERİNİ ÇİZ
+// ==========================================
+function renderActiveMaddeItems() {
+  const currentMadde = appState.maddeler.find(m => m.id === appState.activeMaddeId);
+  if (!currentMadde) return;
+
+  let filtered = [];
+  if (appState.activeMaddeId === 'filmler') {
+    filtered = appState.items.filter(i => i.type === 'movie');
+  } else if (appState.activeMaddeId === 'diziler') {
+    filtered = appState.items.filter(i => i.type === 'tv');
+  } else if (appState.activeMaddeId === 'izlendi') {
+    filtered = appState.items.filter(i => i.isWatched === true);
+  }
+
+  mediaGrid.innerHTML = '';
+
+  if (filtered.length === 0) {
+    emptyBox.style.display = 'flex';
+    if (appState.activeMaddeId === 'izlendi') {
+      emptyTitle.textContent = 'Henüz izlendi olarak işaretlenen içerik yok';
+      emptyDesc.textContent = 'Filmler veya Diziler sekmesinden içeriklerin üzerindeki "✓ İzledim" butonuna basarak buraya ekleyebilirsiniz.';
+    } else {
+      emptyTitle.textContent = `"${currentMadde.name}" kategorisinde henüz içerik yok`;
+      emptyDesc.textContent = 'Yukarıdaki "+ Film / Dizi Ekle" butonuna tıklayarak buraya içerik ekleyebilirsiniz.';
+    }
+    return;
+  }
+
+  emptyBox.style.display = 'none';
+
+  filtered.forEach(item => {
+    const posterUrl = item.poster_path ? `${IMAGE_BASE_URL}${item.poster_path}` : null;
+    const year = item.release_date ? item.release_date.split('-')[0] : '';
+    const rating = item.tmdbRating ? item.tmdbRating.toFixed(1) : null;
+    const isWatched = item.isWatched === true;
+
+    const card = document.createElement('article');
+    card.className = `media-card ${isWatched ? 'watched-card' : ''}`;
+    card.innerHTML = `
+      <div class="poster-wrap">
+        ${posterUrl 
+          ? `<img class="poster-img" src="${posterUrl}" alt="${escapeHtml(item.title)}" loading="lazy" />` 
+          : `<div class="poster-fallback">🎬<span>Görsel Yok</span></div>`}
+        
+        ${rating ? `<div class="card-rating-badge">⭐ ${rating}</div>` : ''}
+        <div class="card-type-badge">${item.type === 'movie' ? '🎬 Film' : '📺 Dizi'}</div>
+      </div>
+
+      <div class="card-details">
+        <div>
+          <div class="card-meta-top">
+            <span>${year || 'Tarih Yok'}</span>
+            ${item.userRating ? `<span class="card-user-score">Puanınız: ⭐ ${item.userRating}/10</span>` : '<span>Puanlanmadı</span>'}
+          </div>
+          <h3 class="card-title">${escapeHtml(item.title)}</h3>
+          ${item.notes ? `<div class="card-user-note">💬 ${escapeHtml(item.notes)}</div>` : ''}
+        </div>
+
+        <div class="card-actions">
+          <button class="btn-card-watched ${isWatched ? 'completed' : ''}" title="${isWatched ? 'İzlendi işaretini kaldır' : 'İzlendi olarak işaretle'}">
+            ${isWatched ? '✅ İzlendi' : '✓ İzledim'}
+          </button>
+          <button class="btn-card-action" title="Detayları Düzenle">✏️ Düzenle</button>
+          <button class="btn-card-delete" title="Listeden Sil">🗑️</button>
+        </div>
+      </div>
+    `;
+
+    // Karta tıklayınca detay aç
+    card.addEventListener('click', (e) => {
+      if (!e.target.closest('.btn-card-watched') && !e.target.closest('.btn-card-delete')) {
+        openDetailModal(item);
+      }
+    });
+
+    // "✓ İzledim" Butonu Tıklaması (Kalıcı Toggle)
+    const watchedBtn = card.querySelector('.btn-card-watched');
+    watchedBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleWatchedStatus(item);
+    });
+
+    // Listeden sil
+    const delBtn = card.querySelector('.btn-card-delete');
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteItem(item.id);
+    });
+
+    mediaGrid.appendChild(card);
+  });
+}
+
+// "İzledim" Durumunu Değiştir ve Kalıcı Kaydet
+function toggleWatchedStatus(item) {
+  const index = appState.items.findIndex(i => i.id === item.id);
+  if (index === -1) return;
+
+  const newWatchedState = !appState.items[index].isWatched;
+  appState.items[index].isWatched = newWatchedState;
+
+  // LocalStorage'a hemen yaz
+  saveItems();
+
+  renderMaddelerBar();
+  renderActiveMaddeItems();
+
+  if (newWatchedState) {
+    showToast(`"${item.title}" ➔ ✅ İzlendi olarak işaretlendi! (Sayfa yenilense de kalır)`, '✅');
+  } else {
+    showToast(`"${item.title}" ➔ İzlendi işareti kaldırıldı.`, '↩️');
+  }
+}
+
+function deleteItem(itemId) {
+  const item = appState.items.find(i => i.id === itemId);
+  appState.items = appState.items.filter(i => i.id !== itemId);
+  saveItems();
+  renderMaddelerBar();
+  renderActiveMaddeItems();
+  if (item) showToast(`"${item.title}" listeden silindi.`, '🗑️');
+}
+
+// ==========================================
+// TMDB'DEN FILM / DIZI EKLEME MODALI
+// ==========================================
+function openAddMediaModal() {
+  addMediaModal.style.display = 'flex';
+  targetMaddeSelect.value = appState.activeMaddeId === 'diziler' ? 'diziler' : 'filmler';
+  tmdbSearchInput.value = '';
+  modalClearSearchBtn.style.display = 'none';
+  tmdbSearchResults.innerHTML = `
+    <div class="search-hint">
+      <span>💡</span>
+      <p>Yukarıya eklemek istediğiniz film veya dizinin adını yazın.</p>
+    </div>
+  `;
+  setTimeout(() => tmdbSearchInput.focus(), 100);
+}
+
+openAddMediaBtn.addEventListener('click', openAddMediaModal);
+emptyAddBtn.addEventListener('click', openAddMediaModal);
+addMediaModalClose.addEventListener('click', () => addMediaModal.style.display = 'none');
+addMediaModal.addEventListener('click', (e) => {
+  if (e.target === addMediaModal) addMediaModal.style.display = 'none';
+});
+
+let tmdbDebounce = null;
+tmdbSearchInput.addEventListener('input', (e) => {
+  const query = e.target.value;
+  modalClearSearchBtn.style.display = query ? 'flex' : 'none';
+
+  clearTimeout(tmdbDebounce);
+  if (!query.trim()) {
+    tmdbSearchResults.innerHTML = `
+      <div class="search-hint">
+        <span>💡</span>
+        <p>Yukarıya eklemek istediğiniz film veya dizinin adını yazın.</p>
+      </div>
+    `;
+    return;
+  }
+
+  tmdbSearchResults.innerHTML = `
+    <div class="search-hint">
+      <span>⏳</span>
+      <p>TMDB'den aranıyor...</p>
+    </div>
+  `;
+
+  tmdbDebounce = setTimeout(async () => {
+    try {
+      const data = await fetchFromTMDB('/search/multi', { query: query.trim() });
+      const results = (data.results || []).filter(item => item.media_type === 'movie' || item.media_type === 'tv');
+
+      if (results.length === 0) {
+        tmdbSearchResults.innerHTML = `
+          <div class="search-hint">
+            <span>🔍</span>
+            <p>Aradığınız isimde film veya dizi bulunamadı.</p>
+          </div>
+        `;
+        return;
+      }
+
+      renderTMDBResults(results);
+    } catch (err) {
+      tmdbSearchResults.innerHTML = `
+        <div class="search-hint">
+          <span>⚠️</span>
+          <p>Arama sırasında bir hata oluştu.</p>
+        </div>
+      `;
+    }
+  }, 350);
+});
+
+modalClearSearchBtn.addEventListener('click', () => {
+  tmdbSearchInput.value = '';
+  modalClearSearchBtn.style.display = 'none';
+  tmdbSearchResults.innerHTML = `
+    <div class="search-hint">
+      <span>💡</span>
+      <p>Yukarıya eklemek istediğiniz film veya dizinin adını yazın.</p>
+    </div>
+  `;
+  tmdbSearchInput.focus();
+});
+
+function renderTMDBResults(results) {
+  tmdbSearchResults.innerHTML = '';
+
+  results.forEach(item => {
+    const isMovie = item.media_type === 'movie';
+    const title = item.title || item.name || item.original_title || item.original_name;
+    const releaseDate = item.release_date || item.first_air_date || '';
+    const year = releaseDate ? releaseDate.split('-')[0] : '';
+    const rating = item.vote_average ? item.vote_average.toFixed(1) : null;
+    const posterUrl = item.poster_path ? `${IMAGE_BASE_URL}${item.poster_path}` : null;
+
+    const isAlreadyInList = appState.items.some(i => i.id === item.id);
+
+    const row = document.createElement('div');
+    row.className = 'tmdb-result-item';
+    row.innerHTML = `
+      ${posterUrl 
+        ? `<img class="result-poster" src="${posterUrl}" alt="${escapeHtml(title)}" />`
+        : `<div class="result-fallback">🎬</div>`}
+      
+      <div class="result-info">
+        <h4 class="result-title">${escapeHtml(title)}</h4>
+        <div class="result-meta">
+          <span>${isMovie ? '🎬 Film' : '📺 Dizi'}</span>
+          ${year ? `<span>• ${year}</span>` : ''}
+          ${rating ? `<span>• ⭐ ${rating}</span>` : ''}
+        </div>
+      </div>
+
+      <div class="result-action">
+        ${isAlreadyInList 
+          ? `<button class="btn-add-quick added">✓ Listede</button>`
+          : `<button class="btn-add-quick" data-add-id="${item.id}">+ Listeme Ekle</button>`}
+      </div>
+    `;
+
+    const addBtn = row.querySelector('.btn-add-quick:not(.added)');
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        const newItem = {
+          id: item.id,
+          type: item.media_type,
+          title: title,
+          original_title: item.original_title || item.original_name || '',
+          isWatched: false,
+          userRating: null,
+          tmdbRating: item.vote_average || null,
+          release_date: releaseDate,
+          poster_path: item.poster_path || '',
+          backdrop_path: item.backdrop_path || '',
+          overview: item.overview || '',
+          notes: '',
+          addedAt: Date.now()
+        };
+
+        appState.items.unshift(newItem);
+        saveItems();
+
+        renderMaddelerBar();
+        renderActiveMaddeItems();
+
+        addBtn.className = 'btn-add-quick added';
+        addBtn.textContent = '✓ Listede';
+        showToast(`"${title}" listenize eklendi! 🎉`, '✅');
+      });
+    }
+
+    tmdbSearchResults.appendChild(row);
+  });
+}
+
+// ==========================================
+// DETAY & DÜZENLEME MODALI
+// ==========================================
+function openDetailModal(item) {
+  appState.activeMedia = item;
+
+  const year = item.release_date ? item.release_date.split('-')[0] : 'Bilinmiyor';
+  const rating = item.tmdbRating ? item.tmdbRating.toFixed(1) : 'Puan Yok';
+  const posterUrl = item.poster_path ? `${IMAGE_BASE_URL}${item.poster_path}` : '';
+  const backdropUrl = item.backdrop_path ? `${BACKDROP_BASE_URL}${item.backdrop_path}` : '';
+
+  modalTitle.textContent = item.title;
+  modalTypeBadge.textContent = item.type === 'movie' ? '🎬 Film' : '📺 Dizi';
+  modalTmdbRating.textContent = `⭐ ${rating}`;
+  modalYear.textContent = year;
+  modalOverview.textContent = item.overview || 'Bu içerik için özet bilgisi girilmemiş.';
+
+  if (posterUrl) {
+    modalPoster.src = posterUrl;
+    modalPoster.style.display = 'block';
+  } else {
+    modalPoster.style.display = 'none';
+  }
+
+  if (backdropUrl) {
+    modalHeroBg.style.backgroundImage = `url(${backdropUrl})`;
+  } else {
+    modalHeroBg.style.backgroundImage = 'none';
+  }
+
+  modalMoveMaddeSelect.value = item.type === 'tv' ? 'diziler' : 'filmler';
+  modalUserRating.value = item.userRating || '';
+  modalUserNote.value = item.notes || '';
+
+  detailModal.style.display = 'flex';
+}
+
+function closeDetailModal() {
+  detailModal.style.display = 'none';
+  appState.activeMedia = null;
+}
+
+detailModalClose.addEventListener('click', closeDetailModal);
+detailModal.addEventListener('click', (e) => {
+  if (e.target === detailModal) closeDetailModal();
+});
+
+modalSaveItemBtn.addEventListener('click', () => {
+  if (!appState.activeMedia) return;
+
+  const item = appState.activeMedia;
+  const newType = modalMoveMaddeSelect.value === 'diziler' ? 'tv' : 'movie';
+  const userRating = modalUserRating.value ? Number(modalUserRating.value) : null;
+  const notes = modalUserNote.value.trim();
+
+  const index = appState.items.findIndex(i => i.id === item.id);
+  if (index > -1) {
+    appState.items[index].type = newType;
+    appState.items[index].userRating = userRating;
+    appState.items[index].notes = notes;
+
+    saveItems();
+    renderMaddelerBar();
+    renderActiveMaddeItems();
+    showToast(`"${item.title}" güncellendi! ✨`, '💾');
+  }
+
+  closeDetailModal();
+});
+
+modalDeleteItemBtn.addEventListener('click', () => {
+  if (!appState.activeMedia) return;
+  const item = appState.activeMedia;
+
+  deleteItem(item.id);
+  closeDetailModal();
+});
+
+// ESC Tuşu
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    addMediaModal.style.display = 'none';
+    detailModal.style.display = 'none';
+  }
+});
+
+// ==========================================
+// BAŞLANGIÇ
+// ==========================================
+renderMaddelerBar();
+renderActiveMaddeItems();

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>İzleme Listesi</title>
+  <meta name="description" content="TMDB destekli modern Film ve Dizi izleme listesi.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Üst Başlık & Eylemler -->
+    <header class="header">
+      <div class="header-inner">
+        <div class="brand">
+          <div class="brand-icon">🎬</div>
+          <h1 class="main-title">İzleme Listesi</h1>
+        </div>
+
+        <div class="header-actions">
+          <button id="open-add-media-btn" class="btn-primary">
+            <span>+</span> Film / Dizi Ekle
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Ana İçerik -->
+    <main class="main-container">
+      
+      <!-- Maddeler Sekmeler Çubuğu -->
+      <section class="maddeler-wrapper">
+        <div class="maddeler-bar" id="maddeler-list">
+          <!-- JS ile maddeler buraya gelecek -->
+        </div>
+      </section>
+
+      <!-- Seçilen Maddenin İçerikleri Izgarası -->
+      <section class="media-container">
+        <!-- Boş Durum -->
+        <div id="empty-box" class="empty-state" style="display: none;">
+          <div class="empty-icon">📂</div>
+          <h3 id="empty-title">Bu maddede henüz içerik yok</h3>
+          <p id="empty-desc">TMDB'den arayarak bu maddeye hemen film veya dizi ekleyebilirsiniz.</p>
+          <button id="empty-add-btn" class="btn-primary" style="margin-top: 0.75rem;">+ İçerik Ekle</button>
+        </div>
+
+        <!-- Medya Kartları -->
+        <div id="media-grid" class="media-grid">
+          <!-- JS dinamik kartları buraya basacak -->
+        </div>
+      </section>
+    </main>
+
+    <!-- TMDB'den Film/Dizi Arama & Seçilen Maddeye Ekleme Modalı -->
+    <div id="add-media-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card tmdb-search-modal">
+        <button class="modal-close-btn" id="add-media-modal-close" title="Kapat">✕</button>
+        <div class="modal-header-custom">
+          <h2>➕ Film veya Dizi Ekle</h2>
+          <p class="settings-desc">TMDB üzerinden arayın ve dilediğiniz kategoriye ekleyin.</p>
+        </div>
+
+        <!-- Hedef Madde Seçici -->
+        <div class="form-field" style="margin-top: 1rem;">
+          <label for="target-madde-select">Eklenecek Kategori / Madde:</label>
+          <select id="target-madde-select" class="custom-select"></select>
+        </div>
+
+        <!-- Arama Girişi -->
+        <div class="modal-search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="tmdb-search-input" placeholder="Film veya dizi adı yazın (örn: Inception, Breaking Bad)..." autocomplete="off" />
+          <button id="modal-clear-search-btn" class="clear-btn" style="display: none;">✕</button>
+        </div>
+
+        <!-- Arama Sonuçları -->
+        <div id="tmdb-search-results" class="tmdb-search-results">
+          <div class="search-hint">
+            <span>💡</span>
+            <p>Yukarıya eklemek istediğiniz film veya dizinin adını yazın.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Film / Dizi Detay & Düzenleme Modalı -->
+    <div id="detail-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card">
+        <button class="modal-close-btn" id="detail-modal-close" title="Kapat">✕</button>
+        <div class="modal-hero" id="modal-hero-bg">
+          <div class="modal-hero-overlay"></div>
+          <div class="modal-poster-wrap">
+            <img id="modal-poster" src="" alt="Afiş" />
+          </div>
+          <div class="modal-hero-content">
+            <div class="modal-badge-group">
+              <span class="badge" id="modal-type-badge">🎬 Film</span>
+              <span class="badge badge-rating" id="modal-tmdb-rating">⭐ 8.5</span>
+              <span class="badge badge-year" id="modal-year">2024</span>
+            </div>
+            <h2 id="modal-title" class="modal-title">İçerik Başlığı</h2>
+          </div>
+        </div>
+
+        <div class="modal-body">
+          <div class="modal-section">
+            <h3>📖 Özet</h3>
+            <p id="modal-overview" class="modal-overview-text">Özet yükleniyor...</p>
+          </div>
+
+          <hr class="modal-divider" />
+
+          <!-- Madde Değiştirme & Not -->
+          <div class="modal-watchlist-box">
+            <div class="watchlist-action-grid">
+              <div class="form-field">
+                <label for="modal-move-madde-select">Bulunduğu Madde:</label>
+                <select id="modal-move-madde-select" class="custom-select"></select>
+              </div>
+
+              <div class="form-field">
+                <label for="modal-user-rating">Puanınız (1-10):</label>
+                <div class="rating-input-wrap">
+                  <input type="number" id="modal-user-rating" min="1" max="10" placeholder="Puan (Örn: 9)" />
+                  <span class="rating-max">/ 10</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-field" style="margin-top: 0.75rem;">
+              <label for="modal-user-note">Kişisel Notunuz:</label>
+              <input type="text" id="modal-user-note" placeholder="Düşünceleriniz, bölüm bilgisi veya notunuz..." class="custom-input" />
+            </div>
+
+            <div class="modal-actions-footer">
+              <button id="modal-delete-item-btn" class="btn-danger">🗑️ Sil</button>
+              <div style="flex: 1;"></div>
+              <button id="modal-save-item-btn" class="btn-primary">💾 Kaydet</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Bildirimleri -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
