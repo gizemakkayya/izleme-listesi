@@ -6,15 +6,16 @@ const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 const BACKDROP_BASE_URL = 'https://image.tmdb.org/t/p/w1280';
 
-// Yerel Depolama & Doğrudan Canlı Senkronizasyon Yapılandırması
+// Yerel Depolama & Kalıcı Bulut Senkronizasyon Yapılandırması
 const STORAGE_KEY_ITEMS = 'izleme_listesi_clean_v10';
 const STORAGE_KEY_ACTIVE_TAB = 'izleme_listesi_tab_v10';
-const GLOBAL_SYNC_CHANNEL = 'izleme_listesi_global_main_v10';
-const NTFY_API_URL = `https://ntfy.sh/${GLOBAL_SYNC_CHANNEL}`;
+const CLOUD_DB_URL = 'https://api.cl1p.net/izleme_listesi_shared_db_v10';
+const SSE_PING_URL = 'https://ntfy.sh/izleme_listesi_shared_ping_v10';
 const MY_CLIENT_ID = 'client_' + Math.random().toString(36).substring(2, 9);
 
 let sseConnection = null;
 let cloudSaveTimeout = null;
+let isUpdatingFromRemote = false;
 
 // Sabit Kategoriler (Maddeler)
 const MADDELER = [
@@ -148,6 +149,8 @@ function loadItems() {
 }
 
 function saveItems() {
+  if (isUpdatingFromRemote) return;
+
   // 1. Anında Yerel Depolamaya Yaz (Sıfır Gecikme)
   try {
     localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(appState.items));
@@ -155,30 +158,30 @@ function saveItems() {
     console.error('LocalStorage yazma hatası:', e);
   }
 
-  // 2. Doğrudan Canlı Bulut Akışına Gönder
+  // 2. Buluta Kaydet ve Diğer Cihazlara Canlı Sinyal Gönder
   updateSyncStatus('syncing', 'Kaydediliyor...');
   clearTimeout(cloudSaveTimeout);
   cloudSaveTimeout = setTimeout(async () => {
     try {
-      const payload = {
-        sender: MY_CLIENT_ID,
-        time: Date.now(),
-        items: appState.items
-      };
-
-      const res = await fetch(NTFY_API_URL, {
+      const res = await fetch(CLOUD_DB_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(appState.items)
       });
 
-      if (res.ok) {
+      if (res.ok || res.status === 201) {
+        // Diğer telefonlara canlı bildirim gönder
+        await fetch(SSE_PING_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sender: MY_CLIENT_ID, time: Date.now() })
+        });
         updateSyncStatus('online', 'Canlı');
       } else {
         updateSyncStatus('offline', 'Kaydedilemedi');
       }
     } catch (err) {
-      console.error('Cloud save hatası:', err);
+      console.error('Buluta kaydetme hatası:', err);
       updateSyncStatus('offline', 'Çevrimdışı');
     }
   }, 300);
@@ -190,35 +193,56 @@ function updateSyncStatus(status, text) {
   if (syncStatusText && text) syncStatusText.textContent = text;
 }
 
+async function fetchLatestFromCloud(showNotification = false) {
+  try {
+    const res = await fetch(CLOUD_DB_URL);
+    if (res.ok) {
+      const items = await res.json();
+      if (Array.isArray(items) && items.length > 0) {
+        const currentStr = JSON.stringify(appState.items);
+        const incomingStr = JSON.stringify(items);
+        if (currentStr !== incomingStr) {
+          isUpdatingFromRemote = true;
+          appState.items = items;
+          try {
+            localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(appState.items));
+          } catch (e) {}
+          renderMaddelerBar();
+          renderActiveMaddeItems();
+          isUpdatingFromRemote = false;
+
+          if (showNotification) {
+            showToast('Liste canlı olarak güncellendi! 🔄', '✨');
+          }
+        }
+      }
+    }
+    updateSyncStatus('online', 'Canlı');
+  } catch (e) {
+    console.warn('Buluttan okuma hatası:', e);
+  }
+}
+
 function connectRealtimeSSE() {
   if (sseConnection) {
     try { sseConnection.close(); } catch (e) {}
   }
 
   try {
-    sseConnection = new EventSource(`${NTFY_API_URL}/sse`);
+    sseConnection = new EventSource(`${SSE_PING_URL}/sse`);
 
-    sseConnection.onmessage = (event) => {
+    sseConnection.onmessage = async (event) => {
       try {
         if (!event.data) return;
         const msgObj = JSON.parse(event.data);
         if (msgObj.event !== 'message' || !msgObj.message) return;
 
         const payload = JSON.parse(msgObj.message);
-        // Kendi yaptığımız değişiklik bildirimi ise yoksay
+        // Kendi yaptığımız değişiklik ise yoksay
         if (payload.sender === MY_CLIENT_ID) return;
 
-        if (payload.items && Array.isArray(payload.items)) {
-          updateSyncStatus('syncing', 'Güncelleniyor...');
-          appState.items = payload.items;
-          try {
-            localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(appState.items));
-          } catch (e) {}
-          renderMaddelerBar();
-          renderActiveMaddeItems();
-          updateSyncStatus('online', 'Canlı');
-          showToast('Liste canlı olarak güncellendi! 🔄', '✨');
-        }
+        updateSyncStatus('syncing', 'Güncelleniyor...');
+        await fetchLatestFromCloud(true);
       } catch (err) {
         // SSE ayrıştırma
       }
@@ -244,122 +268,25 @@ function connectRealtimeSSE() {
 async function initCloudSync() {
   updateSyncStatus('syncing', 'Bağlanıyor...');
 
-  // 1. Buluttaki en güncel listeyi al
-  try {
-    const res = await fetch(`${NTFY_API_URL}/json?poll=1`);
-    if (res.ok) {
-      const text = await res.text();
-      if (text.trim()) {
-        const lines = text.trim().split('\n').filter(l => l.trim());
-        const lastLine = lines[lines.length - 1];
-        const lastMsgObj = JSON.parse(lastLine);
-        if (lastMsgObj && lastMsgObj.message) {
-          const payload = JSON.parse(lastMsgObj.message);
-          if (payload && Array.isArray(payload.items) && payload.items.length > 0) {
-            appState.items = payload.items;
-            try {
-              localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(appState.items));
-            } catch (e) {}
-            renderMaddelerBar();
-            renderActiveMaddeItems();
-          }
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('Initial cloud sync hatası:', e);
-  }
-
-  updateSyncStatus('online', 'Canlı');
+  // 1. Buluttaki en güncel listeyi hemen çek
+  await fetchLatestFromCloud(false);
 
   // 2. Canlı dinleyiciyi başlat
   connectRealtimeSSE();
-}
 
-function connectSSE(docId) {
-  if (sseConnection) {
-    try { sseConnection.close(); } catch (e) {}
-  }
-
-  try {
-    sseConnection = new EventSource(`${SSE_BROADCAST_BASE}${docId}/sse`);
-
-    sseConnection.onmessage = async (event) => {
-      try {
-        if (!event.data) return;
-        const payload = JSON.parse(event.data);
-        // Kendi yaptığımız değişiklik bildirimi ise yoksay
-        if (payload.sender === MY_CLIENT_ID) return;
-
-        updateSyncStatus('syncing', 'Güncelleniyor...');
-        const res = await fetch(`${API_STORAGE_URL}/${docId}`);
-        if (res.ok) {
-          const doc = await res.json();
-          if (doc && doc.data && Array.isArray(doc.data.items)) {
-            appState.items = doc.data.items;
-            try {
-              localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(appState.items));
-            } catch (e) {}
-            renderMaddelerBar();
-            renderActiveMaddeItems();
-            updateSyncStatus('online', 'Canlı');
-            showToast('Arkadaşınız listeyi güncelledi! 🔄', '✨');
-          }
-        }
-      } catch (err) {
-        // SSE ping veya mesaj ayrıştırma
-      }
-    };
-
-    sseConnection.onerror = () => {
-      updateSyncStatus('offline', 'Bağlantı Bekleniyor...');
-      setTimeout(() => {
-        if (sseConnection && sseConnection.readyState === EventSource.CLOSED) {
-          connectSSE(docId);
-        }
-      }, 5000);
-    };
-
-    sseConnection.onopen = () => {
-      updateSyncStatus('online', 'Canlı');
-    };
-  } catch (e) {
-    console.error('SSE bağlantı hatası:', e);
-  }
-}
-
-async function initCloudSync() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const urlDocId = urlParams.get('liste') || urlParams.get('id') || urlParams.get('room');
-  const storedDocId = localStorage.getItem(STORAGE_KEY_DOC_ID);
-
-  if (urlDocId) {
-    currentDocId = urlDocId.trim();
-    localStorage.setItem(STORAGE_KEY_DOC_ID, currentDocId);
-    updateUrlWithDocId(currentDocId);
-  } else if (storedDocId) {
-    currentDocId = storedDocId;
-    updateUrlWithDocId(currentDocId);
-  }
-
-  updateSyncStatus('syncing', 'Bağlanıyor...');
-
-  if (currentDocId) {
-    const cloudLoaded = await loadFromCloud(currentDocId);
-    if (cloudLoaded) {
-      if (urlDocId && urlDocId !== storedDocId) {
-        showToast('🟢 Ortak canlı listeye bağlandınız!', '🎉');
-      }
-    } else {
-      await ensureCloudDocExists();
+  // 3. Mobil cihaz arka plandan öne gelince otomatik güncelle
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      fetchLatestFromCloud(false);
     }
-  } else {
-    await ensureCloudDocExists();
-  }
+  });
 
-  if (currentDocId) {
-    connectSSE(currentDocId);
-  }
+  // 4. Güvence olarak her 10 saniyede bir kontrol et
+  setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      fetchLatestFromCloud(false);
+    }
+  }, 10000);
 }
 
 function loadActiveTab() {
