@@ -235,15 +235,29 @@
         </div>
 
         <div class="header-actions">
-          <div class="user-badge" id="user-profile-badge" title="Giriş Yapılan Hesap">
-            <span class="user-avatar">👤</span>
-            <span class="user-name">zilli</span>
+          <div class="user-menu-wrapper" id="user-menu-wrapper">
+            <button class="user-badge-btn" id="user-profile-btn" aria-haspopup="true" aria-expanded="false" title="Hesap Seçenekleri">
+              <span class="user-avatar">👤</span>
+              <span class="user-name">zilli</span>
+              <span class="user-chevron">▼</span>
+            </button>
+            <div class="user-dropdown-menu" id="user-dropdown-menu">
+              <div class="user-dropdown-header">
+                <div class="user-avatar-sm">👤</div>
+                <div class="user-dropdown-info">
+                  <div class="user-dropdown-name">zilli</div>
+                  <div class="user-dropdown-status">● Çevrimiçi</div>
+                </div>
+              </div>
+              <div class="user-dropdown-divider"></div>
+              <button type="button" class="user-dropdown-item btn-logout-item" id="logout-btn">
+                <span class="dropdown-icon">🚪</span>
+                <span>Oturumu Kapat</span>
+              </button>
+            </div>
           </div>
           <button id="open-add-media-btn" class="btn-primary">
             <span>+</span> Film / Dizi Ekle
-          </button>
-          <button id="logout-btn" class="btn-logout" title="Çıkış Yap">
-            <span>🚪</span>
           </button>
         </div>
       </div>

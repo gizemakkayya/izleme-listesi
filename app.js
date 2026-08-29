@@ -1030,9 +1030,38 @@ if (togglePasswordBtn && loginPasswordInput) {
   });
 }
 
+// Kullanıcı Profil Menüsü & Dropdown Kontrolü
+const userProfileBtn = document.getElementById('user-profile-btn');
+const userDropdownMenu = document.getElementById('user-dropdown-menu');
+
+if (userProfileBtn && userDropdownMenu) {
+  userProfileBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = userDropdownMenu.classList.contains('show');
+    if (isOpen) {
+      userDropdownMenu.classList.remove('show');
+      userProfileBtn.classList.remove('active');
+    } else {
+      userDropdownMenu.classList.add('show');
+      userProfileBtn.classList.add('active');
+    }
+  });
+
+  // Dışarıya tıklanınca menüyü kapat
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#user-menu-wrapper')) {
+      userDropdownMenu.classList.remove('show');
+      userProfileBtn.classList.remove('active');
+    }
+  });
+}
+
 // Çıkış Yap Butonu
 if (logoutBtn) {
-  logoutBtn.addEventListener('click', () => {
+  logoutBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (userDropdownMenu) userDropdownMenu.classList.remove('show');
+    if (userProfileBtn) userProfileBtn.classList.remove('active');
     localStorage.removeItem(STORAGE_KEY_AUTH);
     showLoginScreen();
     showToast('Oturum kapatıldı. 👋', '🔒');
