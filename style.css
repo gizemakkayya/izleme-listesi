@@ -155,8 +155,27 @@ body {
   gap: 0.65rem;
   overflow-x: auto;
   width: 100%;
+  padding: 0.2rem 0 0.45rem 0;
   scrollbar-width: thin;
-  padding: 0.15rem 0;
+  scrollbar-color: rgba(168, 85, 247, 0.35) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.maddeler-bar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.maddeler-bar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.maddeler-bar::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.35);
+  border-radius: 4px;
+}
+
+.maddeler-bar::-webkit-scrollbar-thumb:hover {
+  background: var(--purple);
 }
 
 .madde-pill {
@@ -234,8 +253,8 @@ body {
 
 .media-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 1.15rem;
 }
 
 .media-card {
@@ -252,7 +271,7 @@ body {
 }
 
 .media-card:hover {
-  transform: translateY(-6px);
+  transform: translateY(-4px);
   border-color: var(--green);
   box-shadow: var(--shadow-lg), 0 0 20px rgba(16, 185, 129, 0.2);
 }
@@ -260,7 +279,7 @@ body {
 .poster-wrap {
   position: relative;
   width: 100%;
-  padding-top: 150%;
+  padding-top: 112%; /* Kompakt ve zarif afiş boyutu */
   background: #0a0918;
   overflow: hidden;
 }
@@ -290,77 +309,94 @@ body {
   justify-content: center;
   background: linear-gradient(145deg, #15122c, #0a0918);
   color: var(--text-dim);
-  font-size: 2.5rem;
-  padding: 1rem;
+  font-size: 2rem;
+  padding: 0.75rem;
   text-align: center;
 }
 .poster-fallback span {
-  font-size: 0.8rem;
-  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  margin-top: 0.4rem;
   color: var(--text-muted);
 }
 
 .card-rating-badge {
   position: absolute;
-  top: 0.65rem;
-  left: 0.65rem;
-  background: rgba(10, 9, 24, 0.85);
+  top: 0.45rem;
+  left: 0.45rem;
+  background: rgba(10, 9, 24, 0.88);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0.25rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0.2rem 0.45rem;
   border-radius: var(--radius-sm);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: #fbbf24;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.2rem;
   box-shadow: var(--shadow-sm);
   z-index: 2;
 }
 
 .card-type-badge {
   position: absolute;
-  top: 0.65rem;
-  right: 0.65rem;
-  background: rgba(10, 9, 24, 0.85);
+  top: 0.45rem;
+  right: 0.45rem;
+  background: rgba(10, 9, 24, 0.88);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(168, 85, 247, 0.3);
-  padding: 0.25rem 0.55rem;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  padding: 0.2rem 0.45rem;
   border-radius: var(--radius-sm);
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: 0.68rem;
+  font-weight: 700;
   color: var(--purple-light);
   text-transform: uppercase;
   z-index: 2;
 }
 
 .card-details {
-  padding: 1rem;
+  padding: 0.75rem;
   display: flex;
   flex-direction: column;
   flex: 1;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.55rem;
+}
+
+.card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .card-meta-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.8rem;
+  gap: 0.3rem;
+  font-size: 0.74rem;
   color: var(--text-muted);
+}
+
+.card-year {
+  font-weight: 500;
 }
 
 .card-user-score {
   color: #fbbf24;
   font-weight: 700;
+  white-space: nowrap;
+}
+
+.card-unrated {
+  color: var(--text-dim);
+  font-size: 0.7rem;
 }
 
 .card-title {
-  font-size: 0.98rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  line-height: 1.35;
+  line-height: 1.28;
   color: var(--text-main);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -369,33 +405,35 @@ body {
 }
 
 .card-user-note {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: var(--green-light);
   background: rgba(16, 185, 129, 0.1);
-  padding: 0.35rem 0.55rem;
+  padding: 0.25rem 0.45rem;
   border-radius: 6px;
   border-left: 3px solid var(--green);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: 0.1rem;
 }
 
 .card-actions {
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.25rem;
+  flex-direction: column;
+  gap: 0.32rem;
+  margin-top: 0.15rem;
+  width: 100%;
 }
 
-/* "✓ İzledim" Butonu (Yeşil Vurgu) */
+/* "✓ İzledim" Butonu (Tam Genişlik, Yeşil Vurgu) */
 .btn-card-watched {
-  flex: 1.2;
-  padding: 0.5rem 0.6rem;
+  width: 100%;
+  padding: 0.44rem 0.5rem;
   background: rgba(16, 185, 129, 0.15);
   color: #00ff87;
   border: 1px solid rgba(16, 185, 129, 0.4);
   border-radius: var(--radius-sm);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
   transition: var(--transition);
@@ -417,14 +455,21 @@ body {
   border-color: rgba(16, 185, 129, 0.6);
 }
 
+.card-actions-sub {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+}
+
 .btn-card-action {
   flex: 1;
-  padding: 0.5rem 0.55rem;
+  padding: 0.38rem 0.45rem;
   background: rgba(168, 85, 247, 0.15);
   color: #c084fc;
   border: 1px solid rgba(168, 85, 247, 0.3);
   border-radius: var(--radius-sm);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
@@ -445,16 +490,18 @@ body {
   background: rgba(244, 63, 94, 0.1);
   border: 1px solid rgba(244, 63, 94, 0.25);
   color: var(--rose);
-  width: 30px;
-  height: 30px;
+  padding: 0.38rem 0.55rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
+  gap: 0.2rem;
+  font-size: 0.74rem;
+  font-weight: 600;
   transition: var(--transition);
   flex-shrink: 0;
+  white-space: nowrap;
 }
 .btn-card-delete:hover {
   background: var(--rose);
@@ -977,17 +1024,63 @@ body {
    ========================================= */
 @media (max-width: 768px) {
   .app-wrapper {
-    padding: 1rem 0.75rem 3rem 0.75rem;
+    padding: 0.75rem 0.6rem 3rem 0.6rem;
   }
   .header {
-    padding: 1rem;
+    padding: 0.85rem 1rem;
     position: static;
   }
+  .header-inner {
+    gap: 0.75rem;
+  }
+  .main-title {
+    font-size: 1.3rem;
+  }
   .media-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+  }
+  .poster-wrap {
+    padding-top: 108%;
+  }
+  .card-details {
+    padding: 0.65rem 0.5rem;
+    gap: 0.45rem;
+  }
+  .card-title {
+    font-size: 0.84rem;
   }
   .watchlist-action-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .media-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.55rem;
+  }
+  .poster-wrap {
+    padding-top: 105%;
+  }
+  .card-rating-badge {
+    top: 0.35rem;
+    left: 0.35rem;
+    font-size: 0.68rem;
+    padding: 0.15rem 0.35rem;
+  }
+  .card-type-badge {
+    top: 0.35rem;
+    right: 0.35rem;
+    font-size: 0.62rem;
+    padding: 0.15rem 0.35rem;
+  }
+  .btn-card-watched {
+    font-size: 0.74rem;
+    padding: 0.4rem 0.35rem;
+  }
+  .btn-card-action, .btn-card-delete {
+    font-size: 0.7rem;
+    padding: 0.35rem 0.3rem;
   }
 }

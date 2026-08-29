@@ -305,10 +305,10 @@ function renderActiveMaddeItems() {
       </div>
 
       <div class="card-details">
-        <div>
+        <div class="card-info">
           <div class="card-meta-top">
-            <span>${year || 'Tarih Yok'}</span>
-            ${item.userRating ? `<span class="card-user-score">Puanınız: ⭐ ${item.userRating}/10</span>` : '<span>Puanlanmadı</span>'}
+            <span class="card-year">${year || 'Tarih Yok'}</span>
+            ${item.userRating ? `<span class="card-user-score">⭐ ${item.userRating}/10</span>` : '<span class="card-unrated">Puan Yok</span>'}
           </div>
           <h3 class="card-title">${escapeHtml(item.title)}</h3>
           ${item.notes ? `<div class="card-user-note">💬 ${escapeHtml(item.notes)}</div>` : ''}
@@ -318,8 +318,10 @@ function renderActiveMaddeItems() {
           <button class="btn-card-watched ${isWatched ? 'completed' : ''}" title="${isWatched ? 'İzlendi işaretini kaldır' : 'İzlendi olarak işaretle'}">
             ${isWatched ? '✅ İzlendi' : '✓ İzledim'}
           </button>
-          <button class="btn-card-action" title="Detayları Düzenle">✏️ Düzenle</button>
-          <button class="btn-card-delete" title="Listeden Sil">🗑️</button>
+          <div class="card-actions-sub">
+            <button class="btn-card-action" title="Detayları Düzenle">✏️ Düzenle</button>
+            <button class="btn-card-delete" title="Listeden Sil">🗑️ Sil</button>
+          </div>
         </div>
       </div>
     `;
@@ -330,6 +332,15 @@ function renderActiveMaddeItems() {
         openDetailModal(item);
       }
     });
+
+    // Düzenle butonu
+    const editBtn = card.querySelector('.btn-card-action');
+    if (editBtn) {
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDetailModal(item);
+      });
+    }
 
     // "✓ İzledim" Butonu Tıklaması (Kalıcı Toggle)
     const watchedBtn = card.querySelector('.btn-card-watched');
