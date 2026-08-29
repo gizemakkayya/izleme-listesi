@@ -14,7 +14,6 @@ const STORAGE_KEY_ACTIVE_TAB = 'izleme_listesi_active_tab_v8';
 const MADDELER = [
   { id: 'filmler', name: '🎬 Filmler' },
   { id: 'diziler', name: '📺 Diziler' },
-  { id: 'izleme_sirasi', name: '🎯 İzleme Sırası' },
   { id: 'izlendi', name: '✅ İzlendi' }
 ];
 
@@ -26,8 +25,6 @@ const DEFAULT_ITEMS = [
     title: 'Dune: Çöl Gezegeni Bölüm İki',
     original_title: 'Dune: Part Two',
     isWatched: false,
-    inQueue: true,
-    queueOrder: 1,
     userRating: 9,
     tmdbRating: 8.3,
     release_date: '2024-02-27',
@@ -43,8 +40,6 @@ const DEFAULT_ITEMS = [
     title: 'Breaking Bad',
     original_title: 'Breaking Bad',
     isWatched: true, // Başlangıçta izlendi
-    inQueue: false,
-    queueOrder: 0,
     userRating: 10,
     tmdbRating: 8.9,
     release_date: '2008-01-20',
@@ -60,8 +55,6 @@ const DEFAULT_ITEMS = [
     title: 'Yıldızlararası',
     original_title: 'Interstellar',
     isWatched: false,
-    inQueue: false,
-    queueOrder: 0,
     userRating: null,
     tmdbRating: 8.4,
     release_date: '2014-11-05',
@@ -129,13 +122,7 @@ function loadItems() {
     const data = localStorage.getItem(STORAGE_KEY_ITEMS);
     if (data) {
       const parsed = JSON.parse(data);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((item, idx) => ({
-          ...item,
-          inQueue: Boolean(item.inQueue),
-          queueOrder: Number(item.queueOrder) || (item.inQueue ? idx + 1 : 0)
-        }));
-      }
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {
     console.error('LocalStorage okuma hatası:', e);
@@ -182,86 +169,6 @@ function escapeHtml(str) {
 }
 
 // ==========================================
-// İZLEME SIRASI VE SIRALAMA YÖNETİMİ
-// ==========================================
-function getQueueList() {
-  return appState.items
-    .filter(i => i.inQueue === true && i.isWatched !== true)
-    .sort((a, b) => (Number(a.queueOrder) || 9999) - (Number(b.queueOrder) || 9999));
-}
-
-function normalizeQueueOrders() {
-  const queue = getQueueList();
-  queue.forEach((item, idx) => {
-    item.queueOrder = idx + 1;
-    item.inQueue = true;
-  });
-}
-
-function moveQueueItemUp(itemId) {
-  const queue = getQueueList();
-  const index = queue.findIndex(i => i.id === itemId);
-  if (index <= 0) return;
-
-  const current = queue[index];
-  const previous = queue[index - 1];
-
-  const temp = current.queueOrder;
-  current.queueOrder = previous.queueOrder;
-  previous.queueOrder = temp;
-
-  normalizeQueueOrders();
-  saveItems();
-  renderMaddelerBar();
-  renderActiveMaddeItems();
-  showToast(`"${current.title}" #${current.queueOrder} sırasına yükseltildi! 🔼`, '🎯');
-}
-
-function moveQueueItemDown(itemId) {
-  const queue = getQueueList();
-  const index = queue.findIndex(i => i.id === itemId);
-  if (index < 0 || index >= queue.length - 1) return;
-
-  const current = queue[index];
-  const next = queue[index + 1];
-
-  const temp = current.queueOrder;
-  current.queueOrder = next.queueOrder;
-  next.queueOrder = temp;
-
-  normalizeQueueOrders();
-  saveItems();
-  renderMaddelerBar();
-  renderActiveMaddeItems();
-  showToast(`"${current.title}" #${current.queueOrder} sırasına indirildi! 🔽`, '🎯');
-}
-
-function toggleQueueStatus(item) {
-  const target = appState.items.find(i => i.id === item.id);
-  if (!target) return;
-
-  if (target.inQueue && !target.isWatched) {
-    target.inQueue = false;
-    target.queueOrder = 0;
-    normalizeQueueOrders();
-    saveItems();
-    renderMaddelerBar();
-    renderActiveMaddeItems();
-    showToast(`"${target.title}" izleme sırasından çıkarıldı.`, '↩️');
-  } else {
-    target.inQueue = true;
-    target.isWatched = false;
-    const queue = getQueueList();
-    target.queueOrder = queue.length + 1;
-    normalizeQueueOrders();
-    saveItems();
-    renderMaddelerBar();
-    renderActiveMaddeItems();
-    showToast(`"${target.title}" İzleme Sırası'na (#${target.queueOrder}) eklendi! 🎯`, '✅');
-  }
-}
-
-// ==========================================
 // TMDB API
 // ==========================================
 async function fetchFromTMDB(endpoint, params = {}) {
@@ -295,8 +202,6 @@ function renderMaddelerBar() {
       count = appState.items.filter(i => i.type === 'movie').length;
     } else if (madde.id === 'diziler') {
       count = appState.items.filter(i => i.type === 'tv').length;
-    } else if (madde.id === 'izleme_sirasi') {
-      count = getQueueList().length;
     } else if (madde.id === 'izlendi') {
       count = appState.items.filter(i => i.isWatched === true).length;
     }
@@ -356,15 +261,11 @@ function renderActiveMaddeItems() {
   const currentMadde = appState.maddeler.find(m => m.id === appState.activeMaddeId);
   if (!currentMadde) return;
 
-  const isQueueTab = appState.activeMaddeId === 'izleme_sirasi';
-
   let filtered = [];
   if (appState.activeMaddeId === 'filmler') {
     filtered = appState.items.filter(i => i.type === 'movie');
   } else if (appState.activeMaddeId === 'diziler') {
     filtered = appState.items.filter(i => i.type === 'tv');
-  } else if (isQueueTab) {
-    filtered = getQueueList();
   } else if (appState.activeMaddeId === 'izlendi') {
     filtered = appState.items.filter(i => i.isWatched === true);
   }
@@ -373,10 +274,7 @@ function renderActiveMaddeItems() {
 
   if (filtered.length === 0) {
     emptyBox.style.display = 'flex';
-    if (isQueueTab) {
-      emptyTitle.textContent = 'İzleme Sıranızda henüz içerik yok';
-      emptyDesc.textContent = 'Filmler veya Diziler sekmesinden içeriklerin üzerindeki "🎯 Sıraya Ekle" butonuna basarak izleme sıranızı oluşturabilirsiniz.';
-    } else if (appState.activeMaddeId === 'izlendi') {
+    if (appState.activeMaddeId === 'izlendi') {
       emptyTitle.textContent = 'Henüz izlendi olarak işaretlenen içerik yok';
       emptyDesc.textContent = 'Filmler veya Diziler sekmesinden içeriklerin üzerindeki "✓ İzledim" butonuna basarak buraya ekleyebilirsiniz.';
     } else {
@@ -388,13 +286,11 @@ function renderActiveMaddeItems() {
 
   emptyBox.style.display = 'none';
 
-  filtered.forEach((item, index) => {
+  filtered.forEach(item => {
     const posterUrl = item.poster_path ? `${IMAGE_BASE_URL}${item.poster_path}` : null;
     const year = item.release_date ? item.release_date.split('-')[0] : '';
-    const rating = item.tmdbRating ? Number(item.tmdbRating).toFixed(1) : null;
+    const rating = item.tmdbRating ? item.tmdbRating.toFixed(1) : null;
     const isWatched = item.isWatched === true;
-    const inQueue = item.inQueue === true && !isWatched;
-    const queueOrder = item.queueOrder || (index + 1);
 
     const card = document.createElement('article');
     card.className = `media-card ${isWatched ? 'watched-card' : ''}`;
@@ -404,7 +300,6 @@ function renderActiveMaddeItems() {
           ? `<img class="poster-img" src="${posterUrl}" alt="${escapeHtml(item.title)}" loading="lazy" />` 
           : `<div class="poster-fallback">🎬<span>Görsel Yok</span></div>`}
         
-        ${isQueueTab ? `<div class="card-queue-rank">#${queueOrder}</div>` : ''}
         ${rating ? `<div class="card-rating-badge">⭐ ${rating}</div>` : ''}
         <div class="card-type-badge">${item.type === 'movie' ? '🎬 Film' : '📺 Dizi'}</div>
       </div>
@@ -419,85 +314,22 @@ function renderActiveMaddeItems() {
           ${item.notes ? `<div class="card-user-note">💬 ${escapeHtml(item.notes)}</div>` : ''}
         </div>
 
-        <div>
-          ${isQueueTab ? `
-            <div class="queue-reorder-bar">
-              <button class="btn-reorder btn-reorder-up" title="Yukarı Taşı" ${index === 0 ? 'disabled' : ''}>
-                🔼 Yukarı
-              </button>
-              <button class="btn-reorder btn-reorder-down" title="Aşağı Taşı" ${index === filtered.length - 1 ? 'disabled' : ''}>
-                🔽 Aşağı
-              </button>
-              <button class="btn-queue-remove" title="İzleme Sırasından Çıkar">✕ Çıkar</button>
-            </div>
-          ` : ''}
-
-          <div class="card-actions">
-            <button class="btn-card-watched ${isWatched ? 'completed' : ''}" title="${isWatched ? 'İzlendi işaretini kaldır' : 'İzlendi olarak işaretle'}">
-              ${isWatched ? '✅ İzlendi' : '✓ İzledim'}
-            </button>
-
-            ${!isQueueTab && !isWatched ? `
-              <button class="btn-card-queue-toggle ${inQueue ? 'in-queue' : ''}" title="${inQueue ? 'Sırada (# ' + item.queueOrder + ')' : 'İzleme Sırasına Ekle'}">
-                ${inQueue ? `🎯 Sırada (#${item.queueOrder})` : '🎯 Sıraya Ekle'}
-              </button>
-            ` : ''}
-
-            <button class="btn-card-action" title="Detayları Düzenle">✏️ Düzenle</button>
-            <button class="btn-card-delete" title="Listeden Sil">🗑️</button>
-          </div>
+        <div class="card-actions">
+          <button class="btn-card-watched ${isWatched ? 'completed' : ''}" title="${isWatched ? 'İzlendi işaretini kaldır' : 'İzlendi olarak işaretle'}">
+            ${isWatched ? '✅ İzlendi' : '✓ İzledim'}
+          </button>
+          <button class="btn-card-action" title="Detayları Düzenle">✏️ Düzenle</button>
+          <button class="btn-card-delete" title="Listeden Sil">🗑️</button>
         </div>
       </div>
     `;
 
     // Karta tıklayınca detay aç
     card.addEventListener('click', (e) => {
-      if (
-        !e.target.closest('.btn-card-watched') && 
-        !e.target.closest('.btn-card-delete') &&
-        !e.target.closest('.btn-reorder') &&
-        !e.target.closest('.btn-queue-remove') &&
-        !e.target.closest('.btn-card-queue-toggle')
-      ) {
+      if (!e.target.closest('.btn-card-watched') && !e.target.closest('.btn-card-delete')) {
         openDetailModal(item);
       }
     });
-
-    // İzleme Sırası Yukarı/Aşağı ve Çıkar Butonları
-    if (isQueueTab) {
-      const upBtn = card.querySelector('.btn-reorder-up');
-      if (upBtn) {
-        upBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          moveQueueItemUp(item.id);
-        });
-      }
-
-      const downBtn = card.querySelector('.btn-reorder-down');
-      if (downBtn) {
-        downBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          moveQueueItemDown(item.id);
-        });
-      }
-
-      const removeBtn = card.querySelector('.btn-queue-remove');
-      if (removeBtn) {
-        removeBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          toggleQueueStatus(item);
-        });
-      }
-    }
-
-    // Normal kartlardaki "🎯 Sıraya Ekle" butonu
-    const queueToggleBtn = card.querySelector('.btn-card-queue-toggle');
-    if (queueToggleBtn) {
-      queueToggleBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleQueueStatus(item);
-      });
-    }
 
     // "✓ İzledim" Butonu Tıklaması (Kalıcı Toggle)
     const watchedBtn = card.querySelector('.btn-card-watched');
@@ -522,15 +354,8 @@ function toggleWatchedStatus(item) {
   const index = appState.items.findIndex(i => i.id === item.id);
   if (index === -1) return;
 
-  const target = appState.items[index];
-  const newWatchedState = !target.isWatched;
-  target.isWatched = newWatchedState;
-
-  if (newWatchedState) {
-    target.inQueue = false;
-    target.queueOrder = 0;
-    normalizeQueueOrders();
-  }
+  const newWatchedState = !appState.items[index].isWatched;
+  appState.items[index].isWatched = newWatchedState;
 
   // LocalStorage'a hemen yaz
   saveItems();
@@ -539,16 +364,15 @@ function toggleWatchedStatus(item) {
   renderActiveMaddeItems();
 
   if (newWatchedState) {
-    showToast(`"${target.title}" ➔ ✅ İzlendi olarak işaretlendi! (Sayfa yenilense de kalır)`, '✅');
+    showToast(`"${item.title}" ➔ ✅ İzlendi olarak işaretlendi! (Sayfa yenilense de kalır)`, '✅');
   } else {
-    showToast(`"${target.title}" ➔ İzlendi işareti kaldırıldı.`, '↩️');
+    showToast(`"${item.title}" ➔ İzlendi işareti kaldırıldı.`, '↩️');
   }
 }
 
 function deleteItem(itemId) {
   const item = appState.items.find(i => i.id === itemId);
   appState.items = appState.items.filter(i => i.id !== itemId);
-  normalizeQueueOrders();
   saveItems();
   renderMaddelerBar();
   renderActiveMaddeItems();
@@ -686,8 +510,6 @@ function renderTMDBResults(results) {
           title: title,
           original_title: item.original_title || item.original_name || '',
           isWatched: false,
-          inQueue: false,
-          queueOrder: 0,
           userRating: null,
           tmdbRating: item.vote_average || null,
           release_date: releaseDate,
@@ -721,7 +543,7 @@ function openDetailModal(item) {
   appState.activeMedia = item;
 
   const year = item.release_date ? item.release_date.split('-')[0] : 'Bilinmiyor';
-  const rating = item.tmdbRating ? Number(item.tmdbRating).toFixed(1) : 'Puan Yok';
+  const rating = item.tmdbRating ? item.tmdbRating.toFixed(1) : 'Puan Yok';
   const posterUrl = item.poster_path ? `${IMAGE_BASE_URL}${item.poster_path}` : '';
   const backdropUrl = item.backdrop_path ? `${BACKDROP_BASE_URL}${item.backdrop_path}` : '';
 
@@ -805,4 +627,3 @@ document.addEventListener('keydown', (e) => {
 // ==========================================
 renderMaddelerBar();
 renderActiveMaddeItems();
-
