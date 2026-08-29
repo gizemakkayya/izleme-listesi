@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>İzleme Listesi</title>
   <meta name="description" content="TMDB destekli modern Film ve Dizi izleme listesi.">
-  <link rel="stylesheet" href="style.css?v=6.0">
+  <link rel="stylesheet" href="style.css?v=7.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -81,6 +81,85 @@
     .maddeler-bar::-webkit-scrollbar-thumb {
       background: rgba(168, 85, 247, 0.4) !important;
       border-radius: 4px !important;
+    }
+    /* İzleme Sırası Rozeti ve Butonları */
+    .card-queue-rank {
+      position: absolute !important;
+      top: 0.35rem !important;
+      left: 0.35rem !important;
+      background: linear-gradient(135deg, #f59e0b 0%, #ef4444 50%, #a855f7 100%) !important;
+      color: #fff !important;
+      font-size: 0.72rem !important;
+      font-weight: 900 !important;
+      padding: 0.15rem 0.45rem !important;
+      border-radius: 6px !important;
+      box-shadow: 0 2px 10px rgba(245, 158, 11, 0.5) !important;
+      z-index: 3 !important;
+      border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    }
+    .btn-card-queue-toggle {
+      width: 100% !important;
+      padding: 0.38rem 0.45rem !important;
+      background: rgba(168, 85, 247, 0.12) !important;
+      color: #c084fc !important;
+      border: 1px solid rgba(168, 85, 247, 0.35) !important;
+      border-radius: var(--radius-sm) !important;
+      font-size: 0.74rem !important;
+      font-weight: 700 !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 0.25rem !important;
+      white-space: nowrap !important;
+    }
+    .btn-card-queue-toggle.in-queue {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(168, 85, 247, 0.25)) !important;
+      border-color: #f59e0b !important;
+      color: #fbbf24 !important;
+    }
+    .queue-reorder-bar {
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.25rem !important;
+      background: rgba(10, 8, 24, 0.6) !important;
+      padding: 0.22rem !important;
+      border-radius: 6px !important;
+      border: 1px solid var(--border-color) !important;
+      width: 100% !important;
+    }
+    .btn-reorder {
+      background: rgba(168, 85, 247, 0.15) !important;
+      border: 1px solid rgba(168, 85, 247, 0.3) !important;
+      color: #c084fc !important;
+      border-radius: 4px !important;
+      padding: 0.32rem 0.25rem !important;
+      font-size: 0.7rem !important;
+      font-weight: 700 !important;
+      cursor: pointer !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex: 1 !important;
+      min-width: 0 !important;
+      gap: 0.15rem !important;
+      white-space: nowrap !important;
+    }
+    .btn-reorder:disabled {
+      opacity: 0.3 !important;
+      cursor: not-allowed !important;
+    }
+    .btn-queue-remove {
+      background: rgba(244, 63, 94, 0.12) !important;
+      border: 1px solid rgba(244, 63, 94, 0.25) !important;
+      color: var(--rose) !important;
+      border-radius: 4px !important;
+      padding: 0.32rem 0.4rem !important;
+      font-size: 0.7rem !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
     }
     @media (max-width: 480px) {
       .media-grid {
@@ -234,6 +313,6 @@
     <div id="toast-container" class="toast-container"></div>
   </div>
 
-  <script src="app.js?v=6.0"></script>
+  <script src="app.js?v=7.0"></script>
 </body>
 </html>
