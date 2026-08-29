@@ -6,11 +6,16 @@ const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 const BACKDROP_BASE_URL = 'https://image.tmdb.org/t/p/w1280';
 
-// Yerel Depolama & Kalıcı Bulut Senkronizasyon Yapılandırması
-const STORAGE_KEY_ITEMS = 'izleme_listesi_clean_v10';
+// ==========================================
+// KULLANICI GİRİŞİ & BULUT YAPILANDIRMASI
+// ==========================================
+const AUTH_USERNAME = 'zilli';
+const AUTH_PASSWORD = '123';
+const STORAGE_KEY_AUTH = 'izleme_auth_zilli_v1';
+const STORAGE_KEY_ITEMS = 'izleme_listesi_zilli_v10';
 const STORAGE_KEY_ACTIVE_TAB = 'izleme_listesi_tab_v10';
-const CLOUD_DB_URL = 'https://api.cl1p.net/izleme_listesi_shared_db_v10';
-const SSE_PING_URL = 'https://ntfy.sh/izleme_listesi_shared_ping_v10';
+const CLOUD_DB_URL = 'https://api.cl1p.net/izleme_listesi_zilli_account_db_v1';
+const SSE_PING_URL = 'https://ntfy.sh/izleme_listesi_zilli_sync_ping_v1';
 const MY_CLIENT_ID = 'client_' + Math.random().toString(36).substring(2, 9);
 
 let sseConnection = null;
@@ -94,6 +99,17 @@ let appState = {
 // ==========================================
 // DOM ELEMANLARI
 // ==========================================
+// Giriş Ekranı Elemanları
+const loginScreen = document.getElementById('login-screen');
+const loginForm = document.getElementById('login-form');
+const loginUsernameInput = document.getElementById('login-username');
+const loginPasswordInput = document.getElementById('login-password');
+const togglePasswordBtn = document.getElementById('toggle-password-btn');
+const loginErrorMsg = document.getElementById('login-error');
+const mainApp = document.getElementById('main-app');
+const logoutBtn = document.getElementById('logout-btn');
+
+// Ana Arayüz Elemanları
 const maddelerList = document.getElementById('maddeler-list');
 const mediaGrid = document.getElementById('media-grid');
 const emptyBox = document.getElementById('empty-box');
@@ -943,9 +959,89 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ==========================================
+// KULLANICI GİRİŞİ & OTURUM KONTROLÜ
+// ==========================================
+function checkAuthStatus() {
+  const isLoggedIn = localStorage.getItem(STORAGE_KEY_AUTH) === 'true';
+  if (isLoggedIn) {
+    showMainApp();
+  } else {
+    showLoginScreen();
+  }
+}
+
+function showMainApp() {
+  if (loginScreen) loginScreen.style.display = 'none';
+  if (mainApp) mainApp.style.display = 'flex';
+
+  renderMaddelerBar();
+  renderActiveMaddeItems();
+  initCloudSync();
+}
+
+function showLoginScreen() {
+  if (mainApp) mainApp.style.display = 'none';
+  if (loginScreen) {
+    loginScreen.style.display = 'flex';
+    if (loginErrorMsg) loginErrorMsg.style.display = 'none';
+    if (loginUsernameInput) {
+      loginUsernameInput.value = '';
+      setTimeout(() => loginUsernameInput.focus(), 150);
+    }
+    if (loginPasswordInput) loginPasswordInput.value = '';
+  }
+}
+
+// Giriş Formu Gönderimi
+if (loginForm) {
+  loginForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const username = (loginUsernameInput.value || '').trim().toLowerCase();
+    const password = (loginPasswordInput.value || '').trim();
+
+    if (username === AUTH_USERNAME && password === AUTH_PASSWORD) {
+      localStorage.setItem(STORAGE_KEY_AUTH, 'true');
+      if (loginErrorMsg) loginErrorMsg.style.display = 'none';
+
+      showToast(`Hoş geldin ${AUTH_USERNAME}! 🎉`, '✨');
+      showMainApp();
+    } else {
+      if (loginErrorMsg) loginErrorMsg.style.display = 'block';
+      const card = document.querySelector('.login-card');
+      if (card) {
+        card.classList.add('shake');
+        setTimeout(() => card.classList.remove('shake'), 500);
+      }
+      if (loginPasswordInput) {
+        loginPasswordInput.value = '';
+        loginPasswordInput.focus();
+      }
+    }
+  });
+}
+
+// Şifre Göster / Gizle Butonu
+if (togglePasswordBtn && loginPasswordInput) {
+  togglePasswordBtn.addEventListener('click', () => {
+    const isPassword = loginPasswordInput.type === 'password';
+    loginPasswordInput.type = isPassword ? 'text' : 'password';
+    togglePasswordBtn.textContent = isPassword ? '🙈' : '👁️';
+  });
+}
+
+// Çıkış Yap Butonu
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem(STORAGE_KEY_AUTH);
+    showLoginScreen();
+    showToast('Oturum kapatıldı. 👋', '🔒');
+  });
+}
+
+// ==========================================
 // BAŞLANGIÇ
 // ==========================================
-renderMaddelerBar();
-renderActiveMaddeItems();
-initCloudSync();
+checkAuthStatus();
+
 

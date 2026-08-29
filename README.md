@@ -6,7 +6,10 @@ TMDB (The Movie Database) destekli, modern **Neon Yeşil & Mor** sinematik temal
 
 ## 🌟 Özellikler
 
-- **⚡ Doğrudan Canlı Ortak Liste (Sıfır Kurulum):** Sitenin linkini doğrudan arkadaşınıza atın. Hiçbir oda kodu veya parametreye gerek olmadan; sizin eklediğiniz film, sildiğiniz içerik veya "İzledim" işaretleri **sayfa yenilenmeden anında iki telefonda da canlı senkronize olur ve sitede kalıcı kalır**.
+- **🔐 Kullanıcı Giriş Sistemi:**
+  - **Kullanıcı Adı:** `zilli`
+  - **Şifre:** `123`
+  - Hangi telefondan veya bilgisayardan bu bilgilerle giriş yaparsanız yapın, **aynı ortak izleme listeniz** kalıcı olarak açılır ve anında senkronize olur.
 - **🎬 Filmler & 📺 Diziler:** TMDB veritabanı üzerinden dilediğiniz film veya diziyi anında arama ve tek tıkla listeye ekleme.
 - **✅ Kalıcı "✓ İzledim" İşaretleme:** İçerikleri tek tıkla izlendi olarak işaretleme ve `✅ İzlendi` sekmesinde topluca görüntüleme.
 - **🎯 Özel İzleme Sırası (#1, #2, #3):** İzleme sırasına içerik ekleyip yukarı/aşağı butonlarıyla sıralayabilme.
