@@ -7,8 +7,8 @@ const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 const BACKDROP_BASE_URL = 'https://image.tmdb.org/t/p/w1280';
 
 // Yerel Depolama Anahtarları (Kalıcı Saklama)
-const STORAGE_KEY_ITEMS = 'izleme_listesi_items_v8';
-const STORAGE_KEY_ACTIVE_TAB = 'izleme_listesi_active_tab_v8';
+const STORAGE_KEY_ITEMS = 'izleme_listesi_clean_v10';
+const STORAGE_KEY_ACTIVE_TAB = 'izleme_listesi_tab_v10';
 
 // Sabit Kategoriler (Maddeler)
 const MADDELER = [
