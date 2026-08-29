@@ -7,15 +7,19 @@ const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 const BACKDROP_BASE_URL = 'https://image.tmdb.org/t/p/w1280';
 
 // ==========================================
-// KULLANICI GİRİŞİ & BULUT YAPILANDIRMASI
+// KULLANICI GİRİŞİ & SUPABASE BULUT YAPILANDIRMASI
 // ==========================================
 const AUTH_USERNAME = 'zilli';
 const AUTH_PASSWORD = '123';
 const STORAGE_KEY_AUTH = 'izleme_auth_zilli_v1';
 const STORAGE_KEY_ITEMS = 'izleme_listesi_zilli_v10';
 const STORAGE_KEY_ACTIVE_TAB = 'izleme_listesi_tab_v10';
-const CLOUD_DB_URL = 'https://api.cl1p.net/izleme_listesi_zilli_account_db_v1';
-const SSE_PING_URL = 'https://ntfy.sh/izleme_listesi_zilli_sync_ping_v1';
+
+// Supabase Yapılandırması
+const SUPABASE_URL = 'https://auukwqceypvkxjvtpfsz.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_KcXpbk2Gbd3Va78iOVMB8A_nMhd57GZ';
+const SUPABASE_ENDPOINT = `${SUPABASE_URL}/rest/v1/watchlist`;
+const SSE_PING_URL = 'https://ntfy.sh/izleme_listesi_zilli_sync_v2';
 const MY_CLIENT_ID = 'client_' + Math.random().toString(36).substring(2, 9);
 
 let sseConnection = null;
@@ -174,19 +178,28 @@ function saveItems() {
     console.error('LocalStorage yazma hatası:', e);
   }
 
-  // 2. Buluta Kaydet ve Diğer Cihazlara Canlı Sinyal Gönder
+  // 2. Supabase Bulut Veritabanına Kaydet ve Canlı Bildirim Gönder
   updateSyncStatus('syncing', 'Kaydediliyor...');
   clearTimeout(cloudSaveTimeout);
   cloudSaveTimeout = setTimeout(async () => {
     try {
-      const res = await fetch(CLOUD_DB_URL, {
+      const res = await fetch(SUPABASE_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(appState.items)
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify({
+          id: 'zilli_account',
+          data: appState.items,
+          updated_at: new Date().toISOString()
+        })
       });
 
-      if (res.ok || res.status === 201) {
-        // Diğer telefonlara canlı bildirim gönder
+      if (res.ok || res.status === 201 || res.status === 200 || res.status === 204) {
+        // Diğer telefonlara anlık canlı bildirim gönder
         await fetch(SSE_PING_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -197,7 +210,7 @@ function saveItems() {
         updateSyncStatus('offline', 'Kaydedilemedi');
       }
     } catch (err) {
-      console.error('Buluta kaydetme hatası:', err);
+      console.error('Supabase kaydetme hatası:', err);
       updateSyncStatus('offline', 'Çevrimdışı');
     }
   }, 300);
@@ -211,10 +224,17 @@ function updateSyncStatus(status, text) {
 
 async function fetchLatestFromCloud(showNotification = false) {
   try {
-    const res = await fetch(CLOUD_DB_URL);
+    const res = await fetch(`${SUPABASE_ENDPOINT}?id=eq.zilli_account&select=*`, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+
     if (res.ok) {
-      const items = await res.json();
-      if (Array.isArray(items) && items.length > 0) {
+      const rows = await res.json();
+      if (Array.isArray(rows) && rows.length > 0 && Array.isArray(rows[0].data)) {
+        const items = rows[0].data;
         const currentStr = JSON.stringify(appState.items);
         const incomingStr = JSON.stringify(items);
         if (currentStr !== incomingStr) {
@@ -235,7 +255,7 @@ async function fetchLatestFromCloud(showNotification = false) {
     }
     updateSyncStatus('online', 'Canlı');
   } catch (e) {
-    console.warn('Buluttan okuma hatası:', e);
+    console.warn('Supabase okuma hatası:', e);
   }
 }
 
