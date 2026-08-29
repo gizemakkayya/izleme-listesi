@@ -256,11 +256,10 @@ body {
   border-color: var(--green);
   box-shadow: var(--shadow-lg), 0 0 20px rgba(16, 185, 129, 0.2);
 }
-
 .poster-wrap {
   position: relative;
   width: 100%;
-  padding-top: 150%;
+  padding-top: 135%;
   background: #0a0918;
   overflow: hidden;
 }
@@ -290,65 +289,67 @@ body {
   justify-content: center;
   background: linear-gradient(145deg, #15122c, #0a0918);
   color: var(--text-dim);
-  font-size: 2.5rem;
-  padding: 1rem;
+  font-size: 2.2rem;
+  padding: 0.75rem;
   text-align: center;
 }
 .poster-fallback span {
-  font-size: 0.8rem;
-  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  margin-top: 0.4rem;
   color: var(--text-muted);
 }
 
 .card-rating-badge {
   position: absolute;
-  top: 0.65rem;
-  left: 0.65rem;
-  background: rgba(10, 9, 24, 0.85);
+  bottom: 0.45rem;
+  left: 0.45rem;
+  background: rgba(10, 9, 24, 0.88);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0.25rem 0.55rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.78rem;
-  font-weight: 700;
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
   color: #fbbf24;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  box-shadow: var(--shadow-sm);
+  gap: 0.2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   z-index: 2;
 }
 
 .card-type-badge {
   position: absolute;
-  top: 0.65rem;
-  right: 0.65rem;
-  background: rgba(10, 9, 24, 0.85);
+  top: 0.45rem;
+  right: 0.45rem;
+  background: rgba(10, 9, 24, 0.88);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(168, 85, 247, 0.3);
-  padding: 0.25rem 0.55rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.72rem;
-  font-weight: 600;
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
   color: var(--purple-light);
   text-transform: uppercase;
   z-index: 2;
 }
 
 .card-details {
-  padding: 1rem;
+  padding: 0.85rem;
   display: flex;
   flex-direction: column;
   flex: 1;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.65rem;
 }
 
 .card-meta-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -358,9 +359,9 @@ body {
 }
 
 .card-title {
-  font-size: 0.98rem;
+  font-size: 0.92rem;
   font-weight: 700;
-  line-height: 1.35;
+  line-height: 1.3;
   color: var(--text-main);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -369,41 +370,46 @@ body {
 }
 
 .card-user-note {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: var(--green-light);
   background: rgba(16, 185, 129, 0.1);
-  padding: 0.35rem 0.55rem;
+  padding: 0.25rem 0.45rem;
   border-radius: 6px;
   border-left: 3px solid var(--green);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: 0.2rem;
 }
 
 .card-actions {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.3rem;
   margin-top: 0.25rem;
+  width: 100%;
 }
 
 /* "✓ İzledim" Butonu (Yeşil Vurgu) */
 .btn-card-watched {
-  flex: 1.2;
-  padding: 0.5rem 0.6rem;
+  flex: 1.1;
+  min-width: 0;
+  padding: 0.45rem 0.35rem;
   background: rgba(16, 185, 129, 0.15);
   color: #00ff87;
   border: 1px solid rgba(16, 185, 129, 0.4);
   border-radius: var(--radius-sm);
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 700;
   cursor: pointer;
   transition: var(--transition);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
+  gap: 0.2rem;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .btn-card-watched:hover {
   background: var(--green);
@@ -418,21 +424,24 @@ body {
 }
 
 .btn-card-action {
-  flex: 1;
-  padding: 0.5rem 0.55rem;
+  flex: 0.9;
+  min-width: 0;
+  padding: 0.45rem 0.35rem;
   background: rgba(168, 85, 247, 0.15);
   color: #c084fc;
   border: 1px solid rgba(168, 85, 247, 0.3);
   border-radius: var(--radius-sm);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
+  gap: 0.2rem;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .btn-card-action:hover {
   background: var(--purple);
@@ -445,20 +454,130 @@ body {
   background: rgba(244, 63, 94, 0.1);
   border: 1px solid rgba(244, 63, 94, 0.25);
   color: var(--rose);
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   transition: var(--transition);
   flex-shrink: 0;
 }
 .btn-card-delete:hover {
   background: var(--rose);
   color: #fff;
+}
+
+/* Sıra Numarası Rozeti (#1, #2...) */
+.card-queue-rank {
+  position: absolute;
+  top: 0.45rem;
+  left: 0.45rem;
+  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 50%, #a855f7 100%);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.6);
+  z-index: 3;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* İzleme Sırası Kontrol Çubuğu (Kart içi) */
+.queue-reorder-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.35rem;
+  background: rgba(10, 8, 24, 0.6);
+  padding: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  width: 100%;
+}
+
+.btn-reorder {
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  color: #c084fc;
+  border-radius: 5px;
+  padding: 0.35rem 0.3rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  gap: 0.15rem;
+  white-space: nowrap;
+}
+.btn-reorder:hover:not(:disabled) {
+  background: var(--purple);
+  color: #fff;
+  border-color: transparent;
+}
+.btn-reorder:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-queue-remove {
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  color: var(--rose);
+  border-radius: 5px;
+  padding: 0.35rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-queue-remove:hover {
+  background: var(--rose);
+  color: #fff;
+}
+
+/* Kartlardaki "🎯 Sıraya Ekle / Sırada" Butonu */
+.btn-card-queue-toggle {
+  flex: 1.1;
+  min-width: 0;
+  padding: 0.45rem 0.35rem;
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.btn-card-queue-toggle:hover {
+  background: var(--purple);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px var(--purple-glow);
+}
+.btn-card-queue-toggle.in-queue {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(168, 85, 247, 0.25));
+  border-color: #f59e0b;
+  color: #fbbf24;
+} color: #fbbf24;
 }
 
 /* =========================================
@@ -977,17 +1096,106 @@ body {
    ========================================= */
 @media (max-width: 768px) {
   .app-wrapper {
-    padding: 1rem 0.75rem 3rem 0.75rem;
+    padding: 0.75rem 0.6rem 3rem 0.6rem;
   }
   .header {
-    padding: 1rem;
+    padding: 0.85rem 1rem;
     position: static;
   }
+  .header-inner {
+    gap: 0.75rem;
+  }
+  .main-title {
+    font-size: 1.3rem;
+  }
   .media-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.65rem;
+  }
+  /* Telefonda afişlerin çok devasa görünmesini engelleyen kompakt yükseklik */
+  .poster-wrap {
+    padding-top: 115%;
+  }
+  .card-details {
+    padding: 0.65rem 0.45rem;
+    gap: 0.45rem;
+  }
+  .card-title {
+    font-size: 0.85rem;
+    line-height: 1.25;
+  }
+  .card-meta-top {
+    font-size: 0.7rem;
+  }
+  .card-user-score {
+    font-size: 0.7rem;
+  }
+  .card-user-note {
+    font-size: 0.68rem;
+    padding: 0.15rem 0.35rem;
+  }
+  .queue-reorder-bar {
+    padding: 0.2rem;
+    gap: 0.2rem;
+  }
+  .btn-reorder {
+    padding: 0.3rem 0.2rem;
+    font-size: 0.7rem;
+  }
+  .btn-queue-remove {
+    padding: 0.3rem 0.35rem;
+    font-size: 0.68rem;
+  }
+  .card-actions {
+    gap: 0.2rem;
+  }
+  .btn-card-watched {
+    font-size: 0.72rem;
+    padding: 0.4rem 0.25rem;
+  }
+  .btn-card-action {
+    font-size: 0.72rem;
+    padding: 0.4rem 0.25rem;
+  }
+  .btn-card-queue-toggle {
+    font-size: 0.72rem;
+    padding: 0.4rem 0.25rem;
+  }
+  .btn-card-delete {
+    width: 25px;
+    height: 25px;
+    font-size: 0.75rem;
   }
   .watchlist-action-grid {
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 480px) {
+  .media-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  .poster-wrap {
+    padding-top: 110%;
+  }
+  .card-queue-rank {
+    top: 0.35rem;
+    left: 0.35rem;
+    font-size: 0.72rem;
+    padding: 0.15rem 0.4rem;
+  }
+  .card-type-badge {
+    top: 0.35rem;
+    right: 0.35rem;
+    font-size: 0.62rem;
+    padding: 0.15rem 0.35rem;
+  }
+  .card-rating-badge {
+    bottom: 0.35rem;
+    left: 0.35rem;
+    font-size: 0.68rem;
+    padding: 0.15rem 0.35rem;
+  }
+}
+
