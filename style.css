@@ -1247,15 +1247,14 @@ body {
     justify-content: center;
   }
   .header-actions {
-    justify-content: center;
+    justify-content: space-between;
     width: 100%;
   }
-  .btn-share-link,
   .btn-primary {
     flex: 1;
     justify-content: center;
-    font-size: 0.82rem;
-    padding: 0.6rem 0.8rem;
+    font-size: 0.84rem;
+    padding: 0.6rem 0.9rem;
   }
   .main-title {
     font-size: 1.3rem;

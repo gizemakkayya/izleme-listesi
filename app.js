@@ -6,15 +6,13 @@ const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 const BACKDROP_BASE_URL = 'https://image.tmdb.org/t/p/w1280';
 
-// Yerel Depolama & Bulut Senkronizasyon Yapılandırması
+// Yerel Depolama & Doğrudan Canlı Senkronizasyon Yapılandırması
 const STORAGE_KEY_ITEMS = 'izleme_listesi_clean_v10';
 const STORAGE_KEY_ACTIVE_TAB = 'izleme_listesi_tab_v10';
-const STORAGE_KEY_DOC_ID = 'izleme_cloud_doc_id_v1';
-const API_STORAGE_URL = 'https://api.restful-api.dev/objects';
-const SSE_BROADCAST_BASE = 'https://ntfy.sh/izleme_sync_';
-const MY_CLIENT_ID = 'user_' + Math.random().toString(36).substring(2, 9);
+const GLOBAL_SYNC_CHANNEL = 'izleme_listesi_global_main_v10';
+const NTFY_API_URL = `https://ntfy.sh/${GLOBAL_SYNC_CHANNEL}`;
+const MY_CLIENT_ID = 'client_' + Math.random().toString(36).substring(2, 9);
 
-let currentDocId = null;
 let sseConnection = null;
 let cloudSaveTimeout = null;
 
@@ -102,10 +100,9 @@ const emptyTitle = document.getElementById('empty-title');
 const emptyDesc = document.getElementById('empty-desc');
 const emptyAddBtn = document.getElementById('empty-add-btn');
 
-// Canlı Senkronizasyon & Paylaşım Elemanları
+// Canlı Senkronizasyon Durum Elemanları
 const syncStatus = document.getElementById('sync-status');
 const syncStatusText = document.getElementById('sync-status-text');
-const shareLinkBtn = document.getElementById('share-link-btn');
 
 // TMDB Ekle Modalı
 const openAddMediaBtn = document.getElementById('open-add-media-btn');
@@ -135,14 +132,14 @@ const modalSaveItemBtn = document.getElementById('modal-save-item-btn');
 const toastContainer = document.getElementById('toast-container');
 
 // ==========================================
-// YEREL & BULUT DEPOLAMA İŞLEMLERİ
+// YEREL & BULUT SENKRONİZASYON MOTORU
 // ==========================================
 function loadItems() {
   try {
     const data = localStorage.getItem(STORAGE_KEY_ITEMS);
     if (data) {
       const parsed = JSON.parse(data);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
   } catch (e) {
     console.error('LocalStorage okuma hatası:', e);
@@ -158,41 +155,33 @@ function saveItems() {
     console.error('LocalStorage yazma hatası:', e);
   }
 
-  // 2. Buluta Canlı Gönder (Debounce ile Çift Yönlü Senkron)
-  if (currentDocId) {
-    updateSyncStatus('syncing', 'Kaydediliyor...');
-    clearTimeout(cloudSaveTimeout);
-    cloudSaveTimeout = setTimeout(async () => {
-      try {
-        const res = await fetch(`${API_STORAGE_URL}/${currentDocId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: 'izleme_listesi_shared',
-            data: {
-              items: appState.items,
-              updatedAt: Date.now(),
-              updatedBy: MY_CLIENT_ID
-            }
-          })
-        });
+  // 2. Doğrudan Canlı Bulut Akışına Gönder
+  updateSyncStatus('syncing', 'Kaydediliyor...');
+  clearTimeout(cloudSaveTimeout);
+  cloudSaveTimeout = setTimeout(async () => {
+    try {
+      const payload = {
+        sender: MY_CLIENT_ID,
+        time: Date.now(),
+        items: appState.items
+      };
 
-        if (res.ok) {
-          // Arkadaşının ekranına anında sinyal gönder
-          await fetch(`${SSE_BROADCAST_BASE}${currentDocId}`, {
-            method: 'POST',
-            body: JSON.stringify({ sender: MY_CLIENT_ID, time: Date.now() })
-          });
-          updateSyncStatus('online', 'Canlı');
-        } else {
-          updateSyncStatus('offline', 'Kaydedilemedi');
-        }
-      } catch (err) {
-        console.error('Cloud save hatası:', err);
-        updateSyncStatus('offline', 'Çevrimdışı');
+      const res = await fetch(NTFY_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        updateSyncStatus('online', 'Canlı');
+      } else {
+        updateSyncStatus('offline', 'Kaydedilemedi');
       }
-    }, 350);
-  }
+    } catch (err) {
+      console.error('Cloud save hatası:', err);
+      updateSyncStatus('offline', 'Çevrimdışı');
+    }
+  }, 300);
 }
 
 function updateSyncStatus(status, text) {
@@ -201,67 +190,90 @@ function updateSyncStatus(status, text) {
   if (syncStatusText && text) syncStatusText.textContent = text;
 }
 
-function updateUrlWithDocId(docId) {
-  try {
-    const url = new URL(window.location.href);
-    url.searchParams.set('liste', docId);
-    window.history.replaceState({ path: url.href }, '', url.href);
-  } catch (e) {}
-}
+function connectRealtimeSSE() {
+  if (sseConnection) {
+    try { sseConnection.close(); } catch (e) {}
+  }
 
-async function ensureCloudDocExists() {
   try {
-    updateSyncStatus('syncing', 'Liste Oluşturuluyor...');
-    const res = await fetch(API_STORAGE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: 'izleme_listesi_shared',
-        data: {
-          items: appState.items,
-          updatedAt: Date.now(),
-          updatedBy: MY_CLIENT_ID
+    sseConnection = new EventSource(`${NTFY_API_URL}/sse`);
+
+    sseConnection.onmessage = (event) => {
+      try {
+        if (!event.data) return;
+        const msgObj = JSON.parse(event.data);
+        if (msgObj.event !== 'message' || !msgObj.message) return;
+
+        const payload = JSON.parse(msgObj.message);
+        // Kendi yaptığımız değişiklik bildirimi ise yoksay
+        if (payload.sender === MY_CLIENT_ID) return;
+
+        if (payload.items && Array.isArray(payload.items)) {
+          updateSyncStatus('syncing', 'Güncelleniyor...');
+          appState.items = payload.items;
+          try {
+            localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(appState.items));
+          } catch (e) {}
+          renderMaddelerBar();
+          renderActiveMaddeItems();
+          updateSyncStatus('online', 'Canlı');
+          showToast('Liste canlı olarak güncellendi! 🔄', '✨');
         }
-      })
-    });
-
-    if (res.ok) {
-      const doc = await res.json();
-      if (doc && doc.id) {
-        currentDocId = doc.id;
-        localStorage.setItem(STORAGE_KEY_DOC_ID, currentDocId);
-        updateUrlWithDocId(currentDocId);
-        updateSyncStatus('online', 'Canlı');
-        return true;
+      } catch (err) {
+        // SSE ayrıştırma
       }
-    }
+    };
+
+    sseConnection.onerror = () => {
+      updateSyncStatus('offline', 'Bağlantı Bekleniyor...');
+      setTimeout(() => {
+        if (sseConnection && sseConnection.readyState === EventSource.CLOSED) {
+          connectRealtimeSSE();
+        }
+      }, 5000);
+    };
+
+    sseConnection.onopen = () => {
+      updateSyncStatus('online', 'Canlı');
+    };
   } catch (e) {
-    console.error('Cloud doc oluşturma hatası:', e);
-    updateSyncStatus('offline', 'Çevrimdışı');
+    console.error('SSE bağlantı hatası:', e);
   }
-  return false;
 }
 
-async function loadFromCloud(docId) {
+async function initCloudSync() {
+  updateSyncStatus('syncing', 'Bağlanıyor...');
+
+  // 1. Buluttaki en güncel listeyi al
   try {
-    const res = await fetch(`${API_STORAGE_URL}/${docId}`);
+    const res = await fetch(`${NTFY_API_URL}/json?poll=1`);
     if (res.ok) {
-      const doc = await res.json();
-      if (doc && doc.data && Array.isArray(doc.data.items)) {
-        appState.items = doc.data.items;
-        try {
-          localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(appState.items));
-        } catch (e) {}
-        renderMaddelerBar();
-        renderActiveMaddeItems();
-        updateSyncStatus('online', 'Canlı');
-        return true;
+      const text = await res.text();
+      if (text.trim()) {
+        const lines = text.trim().split('\n').filter(l => l.trim());
+        const lastLine = lines[lines.length - 1];
+        const lastMsgObj = JSON.parse(lastLine);
+        if (lastMsgObj && lastMsgObj.message) {
+          const payload = JSON.parse(lastMsgObj.message);
+          if (payload && Array.isArray(payload.items) && payload.items.length > 0) {
+            appState.items = payload.items;
+            try {
+              localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(appState.items));
+            } catch (e) {}
+            renderMaddelerBar();
+            renderActiveMaddeItems();
+          }
+        }
       }
     }
   } catch (e) {
-    console.error('Buluttan okuma hatası:', e);
+    console.warn('Initial cloud sync hatası:', e);
   }
-  return false;
+
+  updateSyncStatus('online', 'Canlı');
+
+  // 2. Canlı dinleyiciyi başlat
+  connectRealtimeSSE();
 }
 
 function connectSSE(docId) {
@@ -1002,48 +1014,6 @@ document.addEventListener('keydown', (e) => {
     detailModal.style.display = 'none';
   }
 });
-
-// ==========================================
-// ORTAK LİNK KOPYALAMA & PAYLAŞIM
-// ==========================================
-if (shareLinkBtn) {
-  shareLinkBtn.addEventListener('click', async () => {
-    if (currentDocId) {
-      updateUrlWithDocId(currentDocId);
-    }
-
-    const currentUrl = window.location.href;
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(currentUrl);
-      } else {
-        const tempInput = document.createElement('textarea');
-        tempInput.value = currentUrl;
-        tempInput.style.position = 'fixed';
-        tempInput.style.opacity = '0';
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        document.execCommand('copy');
-        document.body.removeChild(tempInput);
-      }
-
-      shareLinkBtn.classList.add('copied');
-      const shareText = shareLinkBtn.querySelector('.share-text');
-      const prevText = shareText ? shareText.textContent : 'Ortak Linki Kopyala';
-      if (shareText) shareText.textContent = '✓ Link Kopyalandı!';
-
-      showToast('🎉 Ortak liste linki kopyalandı! Arkadaşına gönder, ekledikleriniz canlı senkronize olsun.', '🔗');
-
-      setTimeout(() => {
-        shareLinkBtn.classList.remove('copied');
-        if (shareText) shareText.textContent = prevText;
-      }, 2500);
-    } catch (e) {
-      console.error('Kopyalama hatası:', e);
-      showToast('Link kopyalanamadı, lütfen adres çubuğundaki linki kopyalayın.', '⚠️');
-    }
-  });
-}
 
 // ==========================================
 // BAŞLANGIÇ
